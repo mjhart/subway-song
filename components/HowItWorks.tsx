@@ -29,92 +29,145 @@ function linesByNote(): { name: string; lines: { label: string; note: string }[]
   }));
 }
 
-// A made-up batch for the worked example: one train alone, two sharing a
-// time, five sharing a time (two of them on the same line), one alone.
-// Times are seconds after 12:00:00. The example is run through the real
+// Two made-up batches for the worked example, played in consecutive bars.
+// Times are seconds after 12:00:00. Each batch is run through the real
 // planBatch, so the timings and groupings shown always match the rules.
-const EXAMPLE_BATCH = [
-  { label: '1', time: 0 },
-  { label: 'A', time: 10 },
-  { label: 'Q', time: 10 },
-  { label: 'N', time: 20 },
-  { label: '4', time: 20 },
-  { label: 'N', time: 20 },
-  { label: 'D', time: 20 },
-  { label: 'G', time: 20 },
-  { label: '7', time: 40 },
+const EXAMPLE_BATCHES = [
+  // One train alone, two sharing a time, five sharing a time (two of them on
+  // the same line), one alone.
+  [
+    { label: '1', time: 0 },
+    { label: 'A', time: 10 },
+    { label: 'Q', time: 10 },
+    { label: 'N', time: 20 },
+    { label: '4', time: 20 },
+    { label: 'N', time: 20 },
+    { label: 'D', time: 20 },
+    { label: 'G', time: 20 },
+    { label: '7', time: 40 },
+  ],
+  // A quieter batch whose first train arrived before the last one of the
+  // batch above but was reported late.
+  [
+    { label: '2', time: 35 },
+    { label: 'L', time: 45 },
+    { label: 'C', time: 55 },
+    { label: 'F', time: 55 },
+  ],
 ];
 
 const clock = (seconds: number) => `12:00:${String(seconds).padStart(2, '0')}`;
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const word = (n: number) => NUMBER_WORDS[n] ?? String(n);
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
+const ORDINALS = ['first', 'second', 'third'];
 
 function Example() {
-  const plan = planBatch(EXAMPLE_BATCH, POLL_INTERVAL_MS, MAX_CHORD_NOTES);
-  const times = EXAMPLE_BATCH.map((a) => a.time);
-  const spanSeconds = Math.max(...times) - Math.min(...times);
+  const bars = EXAMPLE_BATCHES.map((batch, index) => {
+    const plan = planBatch(batch, POLL_INTERVAL_MS, MAX_CHORD_NOTES);
+    const times = batch.map((a) => a.time);
+    const earliest = Math.min(...times);
+    const latest = Math.max(...times);
+    const previousLatest = index > 0 ? Math.max(...EXAMPLE_BATCHES[index - 1].map((a) => a.time)) : -Infinity;
 
-  const steps = plan.map((chord) => {
-    const time = chord.arrivals[0].time;
-    const sharing = EXAMPLE_BATCH.filter((a) => a.time === time).length;
-    const siblings = plan.filter((c) => c.arrivals[0].time === time);
-    const position = siblings.indexOf(chord);
-    let why: string;
-    if (sharing === 1) {
-      why = 'The only train at this time, so it plays alone.';
-    } else if (siblings.length === 1) {
-      why = `${capitalize(word(sharing))} trains share this time, so they sound together.`;
-    } else if (position === 0) {
-      why = `${capitalize(word(sharing))} trains share this time, more than a chord may hold, so they are `
-        + `split into ${word(siblings.length)} chords. This is the first.`;
-    } else {
-      why = 'The rest of that group, moved later into the gap before the next arrival.';
-    }
-    return { ...chord, time, why, seconds: (chord.offsetMs / 1000).toFixed(1) };
+    const steps = plan.map((chord) => {
+      const time = chord.arrivals[0].time;
+      const sharing = batch.filter((a) => a.time === time).length;
+      const siblings = plan.filter((c) => c.arrivals[0].time === time);
+      const position = siblings.indexOf(chord);
+      let why: string;
+      if (sharing === 1) {
+        why = 'The only train at this time, so it plays alone.';
+      } else if (siblings.length === 1) {
+        why = `${capitalize(word(sharing))} trains share this time, so they sound together.`;
+      } else if (position === 0) {
+        why = `${capitalize(word(sharing))} trains share this time, more than a chord may hold, so they are `
+          + `split into ${word(siblings.length)} chords. This is the first.`;
+      } else {
+        why = 'The rest of that group, moved later into the gap before the next arrival.';
+      }
+      if (time < previousLatest) {
+        why += ` It arrived before the last train of the ${ORDINALS[index - 1]} batch, but we heard about it`
+          + ' late, so it plays after that train.';
+      }
+      // Seconds from the start of the first bar.
+      const seconds = ((index * POLL_INTERVAL_MS + chord.offsetMs) / 1000).toFixed(1);
+      return { ...chord, time, why, seconds };
+    });
+
+    // How long ten seconds of real time lasts in this bar.
+    const lastOffsetMs = plan.find((c) => c.arrivals[0].time === latest)!.offsetMs;
+    const tenSeconds = (lastOffsetMs / (latest - earliest) / 100).toFixed(1);
+    return { index, batch, steps, spanSeconds: latest - earliest, tenSeconds };
   });
 
   return (
     <>
       <p>
-        Suppose a batch holds these {word(EXAMPLE_BATCH.length)} arrivals, spread over{' '}
-        {spanSeconds} seconds of real time. This is the bar they produce, reading left to
-        right. Lines stacked on top of each other sound together.
+        Suppose two batches come in, one after the other. The first holds{' '}
+        {word(bars[0].batch.length)} arrivals spread over {bars[0].spanSeconds} seconds of real
+        time; the second is quieter, with {word(bars[1].batch.length)} arrivals over{' '}
+        {bars[1].spanSeconds} seconds. These are the two bars they produce, each reading left to
+        right. Lines stacked on top of each other sound together, and times are counted from the
+        start of the first bar.
       </p>
-      <div className="example-bar" role="img" aria-label="Timeline of the example bar">
-        {steps.map((step) => (
-          <div
-            className="example-chord"
-            key={step.offsetMs}
-            style={{ left: `${(step.offsetMs / POLL_INTERVAL_MS) * 100}%` }}
-          >
-            {step.arrivals.map((a, i) => <Bullet key={i} label={a.label} />)}
-            <span className="example-tick">{step.seconds}s</span>
+      {bars.map((bar) => (
+        <div key={bar.index}>
+          <h3>Bar {bar.index + 1}: the {ORDINALS[bar.index]} batch</h3>
+          <div className="example-bar" role="img" aria-label={`Timeline of bar ${bar.index + 1}`}>
+            {bar.steps.map((step) => (
+              <div
+                className="example-chord"
+                key={step.offsetMs}
+                style={{ left: `${(step.offsetMs / POLL_INTERVAL_MS) * 100}%` }}
+              >
+                {step.arrivals.map((a, i) => <Bullet key={i} label={a.label} />)}
+                <span className="example-tick">{step.seconds}s</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <ol className="example-steps">
-        {steps.map((step) => (
-          <li key={step.offsetMs} className={step.arrivals.length > 1 ? 'chord' : undefined}>
-            <div className="example-notes">
-              <strong>{step.seconds}s</strong>
-              {step.arrivals.map((a, i) => (
-                <span className="about-line" key={i}>
-                  <Bullet label={a.label} /> {sharp(ROUTE_NOTES[a.label])}
-                </span>
-              ))}
-            </div>
-            <div className="example-why">Arrived {clock(step.time)}. {step.why}</div>
-          </li>
-        ))}
-      </ol>
-      <p>
-        The {spanSeconds} seconds of arrivals have been squeezed to fit one {BAR_SECONDS}-second
-        bar, keeping their proportions. The first arrival sits at the very start, and the last
-        lands a little short of the end so that it doesn’t collide with the first note of the
-        next bar. The two N trains ended up in different chords, because together they would
-        only double the same note.
-      </p>
+          <ol className="example-steps">
+            {bar.steps.map((step) => (
+              <li key={step.offsetMs} className={step.arrivals.length > 1 ? 'chord' : undefined}>
+                <div className="example-notes">
+                  <strong>{step.seconds}s</strong>
+                  {step.arrivals.map((a, i) => (
+                    <span className="about-line" key={i}>
+                      <Bullet label={a.label} /> {sharp(ROUTE_NOTES[a.label])}
+                    </span>
+                  ))}
+                </div>
+                <div className="example-why">Arrived {clock(step.time)}. {step.why}</div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+      <p>What the two bars show:</p>
+      <ul>
+        <li>
+          <strong>Each batch is stretched or squeezed to fit its own bar.</strong> The first
+          batch’s {bars[0].spanSeconds} seconds and the second’s {bars[1].spanSeconds} seconds
+          both fill one {BAR_SECONDS}-second bar. So ten seconds between trains lasts{' '}
+          {bars[0].tenSeconds} seconds in the first bar and {bars[1].tenSeconds} in the second:
+          the same real gap does not always sound the same.
+        </li>
+        <li>
+          <strong>Bars follow one another without a break.</strong> The second bar starts at{' '}
+          {BAR_SECONDS} seconds, exactly when the first ends. In each bar the first arrival sits
+          at the very start and the last lands short of the end, so it doesn’t collide with the
+          first note of the next bar. The fewer arrivals in a batch, the longer that silence at
+          the end.
+        </li>
+        <li>
+          <strong>Order is only kept within a bar.</strong> The 2 train arrived before the 7
+          train, but it came in the second batch, so it is heard after it.
+        </li>
+        <li>
+          <strong>Trains on one line are kept apart.</strong> The two N trains ended up in
+          different chords, because together they would only double the same note.
+        </li>
+      </ul>
     </>
   );
 }
