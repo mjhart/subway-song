@@ -2,19 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { planBatch } from '@/lib/schedule';
-import { bulletLabel, DARK_TEXT_ROUTES, ROUTE_COLORS, ROUTE_NOTES, stationName } from '@/lib/subway';
+import {
+  MAX_CHORD_NOTES, MAX_LOG_ENTRIES, MAX_NOTE_SECONDS, MIN_NOTE_SECONDS, POLL_INTERVAL_MS, POLL_LEAD_MS,
+} from '@/lib/settings';
+import { bulletLabel, ROUTE_NOTES, stationName } from '@/lib/subway';
 import { SineSynth } from '@/lib/synth';
 import { ArrivalTracker, type PollResult } from '@/lib/tracker';
-
-const POLL_INTERVAL_MS = 15000;
-// Each poll runs this long before the playback period it feeds, so the batch
-// is in hand before the period starts.
-const POLL_LEAD_MS = 4000;
-const MAX_LOG_ENTRIES = 500;
-const MIN_NOTE_SECONDS = 0.2;
-const MAX_NOTE_SECONDS = 1.5;
-// Most arrivals sharing a timestamp that may sound together.
-const MAX_CHORD_NOTES = 3;
+import Bullet from './Bullet';
+import HowItWorks from './HowItWorks';
 
 interface PendingArrival {
   label: string;
@@ -155,6 +150,7 @@ export default function SubwaySong() {
           Sound: {soundOn ? 'on' : 'off'}
         </button>
       </header>
+      <HowItWorks />
       {entries.length === 0 && <p className="empty">Waiting for the first train to pull in…</p>}
       <ol className="log">
         {entries.map((entry) => (
@@ -178,12 +174,7 @@ function ArrivalRow({ arrival, playedAt }: { arrival: PlayedArrival; playedAt: n
           inferred, and occasionally a few seconds in the future), and when
           its note was played. */}
       <span className="times">arrived {formatArrived(time)} · played {formatPlayed(playedAt)}</span>
-      <span
-        className="bullet"
-        style={{ background: ROUTE_COLORS[label], color: DARK_TEXT_ROUTES.has(label) ? '#000' : undefined }}
-      >
-        {label === 'SIR' ? 'SI' : label}
-      </span>
+      <Bullet label={label} />
       <span>train arrived at {station}</span>
       {dest && dest !== station && <span className="dest">→ {dest}</span>}
       <span className="times">{formatSound(arrival)}</span>

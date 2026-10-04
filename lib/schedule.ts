@@ -13,6 +13,9 @@ export interface PlannedChord<T> {
 // Arrivals sharing a timestamp play together as a chord of at most
 // maxChordNotes; a bigger group is split into several chords fanned out
 // evenly across the gap before the next distinct timestamp.
+//
+// These rules are explained to site visitors in components/HowItWorks.tsx;
+// update that text when they change.
 export function planBatch<T extends { time: number; label: string }>(
   batch: T[],
   periodMs: number,

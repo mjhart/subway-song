@@ -78,3 +78,57 @@ h1 { margin: 0; font-size: 18px; }
 }
 .dest { color: var(--muted); }
 .empty { padding: 24px 16px; color: var(--muted); }
+
+/* "How the music is made" panel */
+.about { border-bottom: 1px solid var(--rule); }
+.about summary { padding: 10px 16px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.about[open] summary { color: var(--fg); }
+.about-body { max-width: 680px; padding: 0 16px 20px; line-height: 1.55; }
+.about-body h2 { font-size: 16px; margin: 24px 0 8px; }
+.about-body h3 { font-size: 14px; margin: 16px 0 4px; }
+.about-body p { margin: 0 0 10px; }
+.about-body ul { margin: 0 0 10px; padding-left: 20px; }
+.about-body li { margin-bottom: 6px; }
+.about-body code { font-size: 13px; }
+.about-body table { border-collapse: collapse; margin: 0 0 10px; }
+.about-body th { text-align: left; padding: 4px 16px 4px 0; vertical-align: middle; }
+.about-body td { padding: 4px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.about-line { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+
+/* Worked example: one bar drawn as a timeline, then explained step by step. */
+.example-bar {
+  position: relative;
+  height: 96px;
+  margin: 12px 16px 34px;
+  border-bottom: 2px solid var(--fg);
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+}
+.example-chord {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+.example-tick {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.example-steps { list-style: none; margin: 0 0 12px; padding: 0; }
+.example-steps li { padding: 6px 0 6px 12px; margin: 0 0 6px; border-left: 4px solid transparent; }
+.example-steps li.chord {
+  border-left-color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.example-notes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.example-notes strong { min-width: 44px; font-variant-numeric: tabular-nums; }
+.example-why { color: var(--muted); font-size: 13px; margin-top: 2px; }

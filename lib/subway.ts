@@ -15,10 +15,16 @@ export const ROUTE_COLORS: Record<string, string> = {
 };
 export const DARK_TEXT_ROUTES = new Set(['N', 'Q', 'R', 'W']);
 
+/** The scale the notes are drawn from, in order. */
+export const SCALE = ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'];
+
 // One note of the A major scale per color; the line picks the octave. There
 // are more colors than the scale's seven notes, so the four single-line
 // colors (L, G, S, SIR) reuse A, B, C# and D in an octave above the lines
 // that own those notes.
+//
+// The on-site description (components/HowItWorks.tsx) builds its note table
+// from this, but its wording about the scale and colors is written by hand.
 export const ROUTE_NOTES: Record<string, string> = {
   1: 'A3', 2: 'A4', 3: 'A5',
   4: 'B3', 5: 'B4', 6: 'B5',
