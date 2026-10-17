@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { planBatch } from '@/lib/schedule';
 import {
-  MAX_CHORD_NOTES, MAX_LOG_ENTRIES, MAX_NOTE_SECONDS, MIN_NOTE_SECONDS, POLL_INTERVAL_MS, POLL_LEAD_MS,
+  GRID_MS, MAX_CHORD_NOTES, MAX_LOG_ENTRIES, MAX_NOTE_SECONDS, MIN_NOTE_SECONDS, POLL_INTERVAL_MS, POLL_LEAD_MS,
 } from '@/lib/settings';
 import { bulletLabel, ROUTE_NOTES, stationName } from '@/lib/subway';
 import { SineSynth } from '@/lib/synth';
@@ -96,7 +96,7 @@ export default function SubwaySong() {
       const result = await tracker.pollAll();
       if (cancelled) return;
 
-      for (const chord of planBatch(batch, POLL_INTERVAL_MS, MAX_CHORD_NOTES)) {
+      for (const chord of planBatch(batch, POLL_INTERVAL_MS, MAX_CHORD_NOTES, GRID_MS)) {
         const delayMs = Math.max(0, periodStart + chord.offsetMs - performance.now());
         const played = chord.arrivals.map((arrival): PlayedArrival => ({
           ...arrival,

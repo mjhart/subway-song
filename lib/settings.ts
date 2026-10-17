@@ -11,3 +11,9 @@ export const MIN_NOTE_SECONDS = 0.2;
 export const MAX_NOTE_SECONDS = 1.5;
 // Most arrivals sharing a timestamp that may sound together.
 export const MAX_CHORD_NOTES = 3;
+/** Tempo of the grid notes are snapped to. */
+export const TEMPO_BPM = 100;
+// Notes start on 16th notes: four grid steps per beat.
+export const GRID_STEPS_PER_BEAT = 4;
+/** Length of one grid step: a 16th note at TEMPO_BPM. */
+export const GRID_MS = 60000 / TEMPO_BPM / GRID_STEPS_PER_BEAT;
