@@ -14,12 +14,18 @@ export interface PlannedChord<T> {
 // maxChordNotes; a bigger group is split into several chords fanned out
 // evenly across the gap before the next distinct timestamp.
 //
+// Every chord then snaps to the nearest step of a grid of gridMs. A chord
+// that would land on the same step as the one before it moves to the next
+// free step, unless the bar has run out of steps, in which case it shares
+// the last one.
+//
 // These rules are explained to site visitors in components/HowItWorks.tsx;
 // update that text when they change.
 export function planBatch<T extends { time: number; label: string }>(
   batch: T[],
   periodMs: number,
   maxChordNotes: number,
+  gridMs: number,
 ): PlannedChord<T>[] {
   if (!batch.length) return [];
   const groups = new Map<number, T[]>(); // timestamp -> arrivals
@@ -49,5 +55,16 @@ export function planBatch<T extends { time: number; label: string }>(
       });
     }
   });
-  return plan;
+  return quantize(plan, periodMs, gridMs);
+}
+
+function quantize<T>(plan: PlannedChord<T>[], periodMs: number, gridMs: number): PlannedChord<T>[] {
+  const lastStep = Math.ceil(periodMs / gridMs) - 1;
+  let previous = -1;
+  return plan.map((chord) => {
+    const nearest = Math.min(Math.round(chord.offsetMs / gridMs), lastStep);
+    const step = nearest > previous ? nearest : Math.min(previous + 1, lastStep);
+    previous = step;
+    return { ...chord, offsetMs: step * gridMs };
+  });
 }

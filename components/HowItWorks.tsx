@@ -1,5 +1,7 @@
 import { planBatch } from '@/lib/schedule';
-import { MAX_CHORD_NOTES, MAX_NOTE_SECONDS, MIN_NOTE_SECONDS, POLL_INTERVAL_MS } from '@/lib/settings';
+import {
+  GRID_MS, MAX_CHORD_NOTES, MAX_NOTE_SECONDS, MIN_NOTE_SECONDS, POLL_INTERVAL_MS, TEMPO_BPM,
+} from '@/lib/settings';
 import { ROUTE_NOTES, SCALE } from '@/lib/subway';
 import Bullet from './Bullet';
 
@@ -64,7 +66,7 @@ const ORDINALS = ['first', 'second', 'third'];
 
 function Example() {
   const bars = EXAMPLE_BATCHES.map((batch, index) => {
-    const plan = planBatch(batch, POLL_INTERVAL_MS, MAX_CHORD_NOTES);
+    const plan = planBatch(batch, POLL_INTERVAL_MS, MAX_CHORD_NOTES, GRID_MS);
     const times = batch.map((a) => a.time);
     const earliest = Math.min(...times);
     const latest = Math.max(...times);
@@ -115,10 +117,10 @@ function Example() {
         <div key={bar.index}>
           <h3>Bar {bar.index + 1}: the {ORDINALS[bar.index]} batch</h3>
           <div className="example-bar" role="img" aria-label={`Timeline of bar ${bar.index + 1}`}>
-            {bar.steps.map((step) => (
+            {bar.steps.map((step, n) => (
               <div
                 className="example-chord"
-                key={step.offsetMs}
+                key={n}
                 style={{ left: `${(step.offsetMs / POLL_INTERVAL_MS) * 100}%` }}
               >
                 {step.arrivals.map((a, i) => <Bullet key={i} label={a.label} />)}
@@ -127,8 +129,8 @@ function Example() {
             ))}
           </div>
           <ol className="example-steps">
-            {bar.steps.map((step) => (
-              <li key={step.offsetMs} className={step.arrivals.length > 1 ? 'chord' : undefined}>
+            {bar.steps.map((step, n) => (
+              <li key={n} className={step.arrivals.length > 1 ? 'chord' : undefined}>
                 <div className="example-notes">
                   <strong>{step.seconds}s</strong>
                   {step.arrivals.map((a, i) => (
@@ -269,7 +271,10 @@ export default function HowItWorks() {
         <p>
           Within a bar, notes are placed in proportion to their arrival times. The earliest
           arrival in the batch plays at the very start of the bar and the latest plays near
-          the end. There is no beat or tempo: notes fall wherever the trains put them.
+          the end. Each note is then snapped to the nearest 16th note at {TEMPO_BPM} BPM, a
+          grid step every {GRID_MS / 1000} seconds, so a bar holds{' '}
+          {POLL_INTERVAL_MS / GRID_MS} steps. If two notes would land on the same step, the
+          later one moves to the next step.
         </p>
 
         <h3>Chords</h3>
@@ -306,7 +311,8 @@ export default function HowItWorks() {
           </li>
           <li>What a note sounds like: <code>lib/synth.ts</code></li>
           <li>
-            Bar length, largest chord, shortest and longest note: <code>lib/settings.ts</code>
+            Bar length, tempo, largest chord, shortest and longest note:{' '}
+            <code>lib/settings.ts</code>
           </li>
         </ul>
         <p>
